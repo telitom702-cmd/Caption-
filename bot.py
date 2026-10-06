@@ -1,20 +1,16 @@
 import logging
 from pyrogram import Client
-from Info import API_ID, API_HASH, BOT_TOKEN
+from plugins.config import Config # এখান থেকে ইমপোর্ট করা হয়েছে
 
-# Logging Setup
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO)
 
 plugins = dict(root="plugins")
 
 app = Client(
     "@UploaderXNTBot",
-    bot_token=BOT_TOKEN,
-    api_id=API_ID,
-    api_hash=API_HASH,
+    bot_token=Config.BOT_TOKEN,
+    api_id=Config.API_ID,
+    api_hash=Config.API_HASH,
     sleep_threshold=300,
     plugins=plugins
 )
