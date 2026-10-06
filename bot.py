@@ -2,23 +2,32 @@ import logging
 import asyncio
 
 from aiohttp import web
-from pyrogram import Client
+from pyrogram import Client, idle
 
 from plugins.config import Config
 
 
-logging.basicConfig(level=logging.INFO)
+# ============================================================
+# LOGGING
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+
+LOGGER = logging.getLogger(__name__)
 
 
 # ============================================================
-# Pyrogram Plugins
+# PYROGRAM PLUGINS
 # ============================================================
 
 plugins = dict(root="plugins")
 
 
 # ============================================================
-# Bot
+# TELEGRAM BOT
 # ============================================================
 
 app = Client(
@@ -32,7 +41,7 @@ app = Client(
 
 
 # ============================================================
-# Web Server
+# WEB SERVER
 # ============================================================
 
 async def home(request):
@@ -56,7 +65,7 @@ async def start_web_server():
     web_app.router.add_get("/", home)
     web_app.router.add_get("/health", health)
 
-    # Render / Railway / VPS port
+    # Render PORT
     port = int(getattr(Config, "PORT", 8080))
 
     runner = web.AppRunner(web_app)
@@ -70,30 +79,72 @@ async def start_web_server():
 
     await site.start()
 
-    logging.info(f"Web Service started on port {port}")
+    LOGGER.info(
+        "🌐 Web Service started on port %s",
+        port
+    )
+
+    return runner
 
 
 # ============================================================
-# Main
+# MAIN
 # ============================================================
 
 async def main():
 
-    # Start Bot
-    await app.start()
+    # --------------------------------------------------------
+    # Start Telegram Bot
+    # --------------------------------------------------------
 
-    me = await app.get_me()
+    try:
+        await app.start()
 
-    logging.info(
-        f"Bot Started: @{me.username}"
-    )
+        me = await app.get_me()
 
+        LOGGER.info(
+            "🤖 Bot Started Successfully: @%s",
+            me.username
+        )
+
+    except Exception:
+        LOGGER.exception("❌ Telegram Bot failed to start!")
+        raise
+
+
+    # --------------------------------------------------------
     # Start Web Service
-    await start_web_server()
+    # --------------------------------------------------------
 
-    # Keep running forever
-    await asyncio.Event().wait()
+    try:
+        await start_web_server()
 
+    except Exception:
+        LOGGER.exception("❌ Web Service failed to start!")
+        await app.stop()
+        raise
+
+
+    # --------------------------------------------------------
+    # Keep Bot Running
+    # --------------------------------------------------------
+
+    LOGGER.info("✅ Bot + Web Service are running.")
+
+    await idle()
+
+
+# ============================================================
+# RUN
+# ============================================================
 
 if __name__ == "__main__":
-    asyncio.run(main())
+
+    try:
+        asyncio.run(main())
+
+    except KeyboardInterrupt:
+        LOGGER.info("🛑 Bot stopped by user.")
+
+    except Exception:
+        LOGGER.exception("❌ Fatal error occurred.")
